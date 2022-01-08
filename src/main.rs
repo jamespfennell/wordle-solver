@@ -1,6 +1,7 @@
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use std::fmt::Display;
+use std::io::{self, BufRead};
 
 // TODO: only make guesses that are valid aka --hard-mode
 // TODO: support guessing from the bigger corpus
@@ -11,8 +12,8 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     match args.len() {
         1 => {
-            println!("An input word is required");
-            std::process::exit(1);
+            let guesser = InteractiveGuesser {};
+            solve(guesser, valid_answers.clone(), valid_answers);
         }
         2 => {
             let solution_raw: Vec<char> = args[1].chars().collect();
@@ -50,7 +51,14 @@ fn solve<T: Guesser>(guesser: T, allowed_guesses: Vec<Word>, mut possible_soluti
             break;
         }
         let hist = build_histogram(best, &possible_solutions);
-        possible_solutions = hist[&response].iter().map(|w| (*w).clone()).collect();
+
+        possible_solutions = match hist.get(&response) {
+            None => {
+                println!("No solutions remaining after applying Wordle responses.");
+                std::process::exit(1);
+            }
+            Some(s) => s.iter().map(|w| (*w).clone()).collect(),
+        };
         println!("{} remaining solutions", possible_solutions.len());
     }
 
@@ -89,9 +97,56 @@ impl Guesser for KnownSolutionGuesser {
 struct InteractiveGuesser;
 
 impl Guesser for InteractiveGuesser {
-    fn guess(&self, guess: Word) -> GuessResponse {
-        let f = |i| GuessResponseChar::Excluded;
-        GuessResponse([f(0), f(1), f(2), f(3), f(4)])
+    fn guess(&self, _: Word) -> GuessResponse {
+        println!("Enter the response from Wordle using the characters b (black ⬛, no match), g (green 🟩, exact match) or y (yellow 🟨, non-exact match)");
+        println!("For example, enter ⬛🟨🟨🟩🟨 as byygy");
+        let mut response = None;
+        for i in 0..5 {
+            match InteractiveGuesser::read_response_from_terminal() {
+                Ok(r) => {
+                    response = Some(r);
+                    break;
+                }
+                Err(s) => {
+                    println!("{}; please try again:", s);
+                }
+            }
+        }
+        match response {
+            None => {
+                println!("Failed to read response after 5 attempts");
+                std::process::exit(1);
+            }
+            Some(response) => response,
+        }
+    }
+}
+
+impl InteractiveGuesser {
+    fn read_response_from_terminal() -> Result<GuessResponse, String> {
+        let line = std::io::stdin().lock().lines().next().unwrap().unwrap();
+        let chars: [char; 5] = match line.chars().collect::<Vec<char>>().try_into() {
+            Ok(chars) => chars,
+            Err(_) => {
+                return Err(format!("Expected 5 letters; got {}", line.len()));
+            }
+        };
+        let mut response = [GuessResponseChar::Exact; 5];
+        for j in 0..5 {
+            response[j] = match chars[j] {
+                'b' | 'B' => GuessResponseChar::Excluded,
+                'g' | 'G' => GuessResponseChar::Exact,
+                'y' | 'Y' => GuessResponseChar::Included,
+                _ => {
+                    return Err(format!(
+                        "Unexpected letter {} in position {}",
+                        chars[j],
+                        j + 1
+                    ));
+                }
+            };
+        }
+        Ok(GuessResponse(response))
     }
 }
 
