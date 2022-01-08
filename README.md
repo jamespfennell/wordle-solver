@@ -15,11 +15,11 @@ cargo build --release
 
 The solver has two modes.
 In *interactive mode*, the solver suggests guesses and asks for the response
-the Wordle game gives to those guesses.
+the Wordle game returns for those guesses.
 Eventually it figures out the solution.
 This mode is run using:
 ```
-./target/release-wordle-solver
+./target/release/wordle-solver
 ```
 
 In *simulation mode*, the solver simulates the moves it would make given a provided
@@ -27,7 +27,7 @@ true solution.
 The solution is provided as a single command line argument.
 For example:
 ```
-./target/release-wordle-solver crank
+./target/release/wordle-solver crank
 Wordle Solver
 
 Simulating game play for solution 'crank'
@@ -56,7 +56,8 @@ Solution: crank
 
 ## The solver algorithm
 
-At each stage in the game there is a set of possible solutions, starting with Wordle's 2315 valid solutions.
+At each stage in the game there is a set of possible solutions, starting with 
+[Wordle's 2315 valid solutions](https://github.com/jamespfennell/wordle-solver/blob/main/src/valid_solutions.txt).
 After making a specific guess, there are up to `3^5=243` possible responses that Wordle can return.
 Each character can either be 🟩 (exact match), 🟨 (non-exact match) or ⬛ (no match), and there are 5 letters, hence `3^5`.
 Note that 243 is an upper bound on the number of responses: if there are only 5 solutions left, Wordle can return at most 5 different responses.
@@ -64,7 +65,7 @@ Note that 243 is an upper bound on the number of responses: if there are only 5 
 Given a specific guess, we can *partition* the set of solutions by grouping together 
   solutions that return the same response from Wordle.
 For example, if the possible solutions are 
-  `banal`, `canal` and `world` and we guess `final` the paritions are:
+  `banal`, `canal` and `world` and we guess `final` the partitions are:
 
 - ⬛⬛🟩🟩🟩: `banal`, `canal`
 - ⬛⬛⬛🟨⬛: `world`
@@ -75,3 +76,10 @@ In general (assuming a uniform distribution of solutions) the probability that a
 
 Finally, we use the partition probabilities to calculate the expected number of solutions that will be left.
 This is simply `(probability of partition) * (number of solutions in partition)` summed over all partitions.
+
+## Credit
+
+The initial implementation of this idea was O(N^3) where N is the number of possible solutions.
+[Tom O'Neill's blog post](https://notfunatparties.substack.com/p/wordle-solver/)
+  taught me that there was an equivalent O(N * max(N, 243)) algorithm, 
+  which is used for the current implementation.
