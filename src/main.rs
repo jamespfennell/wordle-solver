@@ -1,19 +1,19 @@
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use std::fmt::Display;
-use std::io::{self, BufRead};
+use std::io::BufRead;
 
 // TODO: only make guesses that are valid aka --hard-mode
 // TODO: support guessing from the bigger corpus
 
 fn main() {
     println!("Wordle Solver");
-    let valid_answers = parse_words(include_str!("valid_answers.txt"));
+    let valid_solutions = parse_words(include_str!("valid_solutions.txt"));
     let args: Vec<String> = std::env::args().collect();
     match args.len() {
         1 => {
             let guesser = InteractiveGuesser {};
-            solve(guesser, valid_answers.clone(), valid_answers);
+            solve(guesser, valid_solutions.clone(), valid_solutions);
         }
         2 => {
             let solution_raw: Vec<char> = args[1].chars().collect();
@@ -26,7 +26,7 @@ fn main() {
 
             println!("\nSimulating game play for solution '{}'", solution);
             let guesser = KnownSolutionGuesser { solution };
-            solve(guesser, valid_answers.clone(), valid_answers);
+            solve(guesser, valid_solutions.clone(), valid_solutions);
         }
         _ => {
             println!("Too many inputs passed");
@@ -101,7 +101,7 @@ impl Guesser for InteractiveGuesser {
         println!("Enter the response from Wordle using the characters b (black ⬛, no match), g (green 🟩, exact match) or y (yellow 🟨, non-exact match)");
         println!("For example, enter ⬛🟨🟨🟩🟨 as byygy");
         let mut response = None;
-        for i in 0..5 {
+        for _ in 0..5 {
             match InteractiveGuesser::read_response_from_terminal() {
                 Ok(r) => {
                     response = Some(r);
