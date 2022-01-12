@@ -24,7 +24,7 @@ This mode is run using:
 
 In *simulation mode*, the solver simulates the moves it would make given a provided
 true solution.
-The solution is provided via the string flag `-s` or `--solution`:
+This solution is provided using the string flag `-s` or `--solution`:
 ```
 ./target/release/wordle-solver -s crank
 Wordle Solver
@@ -53,8 +53,17 @@ Solution: crank
 🟩🟩🟩🟩🟩
 ```
 
-The flag `--hard-mode` runs the solver with Wordle's hard mode rules in which
+Other flags:
+
+- `-h`, `--hard-mode`: runs the solver with Wordle's hard mode rules in which
   only guesses satisfying the known constraints may be provided.
+
+- `-g`, `--genius`: allows guesses from the corpus of all words accepted by
+  Wordle. This is about 
+  [13 thousand words total](https://github.com/jamespfennell/wordle-solver/blob/main/src/additional_words.txt).
+  By default the solver (and most humans) only make guesses from the 
+  [2315 words](https://github.com/jamespfennell/wordle-solver/blob/main/src/valid_solutions.txt)
+  that are possible solutions to Wordle.
 
 ## The solver algorithm
 

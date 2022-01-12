@@ -4,8 +4,6 @@ use rustc_hash::FxHashSet as HashSet;
 use std::fmt::Display;
 use std::io::BufRead;
 
-// TODO: support guessing from the bigger corpus
-
 /// Wordle Solver
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -17,21 +15,29 @@ struct Args {
     /// Enable hard mode in which all guesses must be valid solutions.
     #[clap(short, long)]
     hard_mode: bool,
+
+    /// Allow guesses from the corpus of all 13k 5 letter words accepted by Wordle.
+    #[clap(short, long)]
+    genius: bool,
 }
 
 fn main() {
     println!("Wordle Solver");
     let args = Args::parse();
     let valid_solutions = parse_words(include_str!("valid_solutions.txt"));
+    let allowed_guesses = match args.genius {
+        true => {
+            let additional_words = parse_words(include_str!("additional_words.txt"));
+            let mut all_words = valid_solutions.clone();
+            all_words.extend(additional_words.into_iter());
+            all_words
+        }
+        false => valid_solutions.clone(),
+    };
     match args.solution {
         None => {
             let guesser = InteractiveGuesser {};
-            solve(
-                guesser,
-                valid_solutions.clone(),
-                valid_solutions,
-                args.hard_mode,
-            );
+            solve(guesser, allowed_guesses, valid_solutions, args.hard_mode);
         }
         Some(solution) => {
             let solution_raw: Vec<char> = solution.chars().collect();
@@ -44,12 +50,7 @@ fn main() {
 
             println!("\nSimulating game play for solution '{}'", solution);
             let guesser = KnownSolutionGuesser { solution };
-            solve(
-                guesser,
-                valid_solutions.clone(),
-                valid_solutions,
-                args.hard_mode,
-            );
+            solve(guesser, allowed_guesses, valid_solutions, args.hard_mode);
         }
     }
 }
@@ -59,7 +60,7 @@ fn solve<T: Guesser>(
     allowed_guesses: Vec<Word>,
     mut possible_solutions: Vec<Word>,
     hard_mode: bool,
-) {
+) -> usize {
     let mut responses = Vec::new();
     loop {
         println!("");
@@ -91,9 +92,10 @@ fn solve<T: Guesser>(
 
     println!("");
     println!("Solution: {}", possible_solutions[0]);
-    for response in responses {
+    for response in &responses {
         println!("{}", response);
     }
+    responses.len()
 }
 
 trait Guesser {
