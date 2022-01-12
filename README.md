@@ -24,10 +24,9 @@ This mode is run using:
 
 In *simulation mode*, the solver simulates the moves it would make given a provided
 true solution.
-The solution is provided as a single command line argument.
-For example:
+The solution is provided via the string flag `-s` or `--solution`:
 ```
-./target/release/wordle-solver crank
+./target/release/wordle-solver -s crank
 Wordle Solver
 
 Simulating game play for solution 'crank'
@@ -53,6 +52,9 @@ Solution: crank
 ⬛🟨🟨🟨⬛
 🟩🟩🟩🟩🟩
 ```
+
+The flag `--hard-mode` runs the solver with Wordle's hard mode rules in which
+  only guesses satisfying the known constraints may be provided.
 
 ## The solver algorithm
 

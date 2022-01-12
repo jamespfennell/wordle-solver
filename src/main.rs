@@ -1,22 +1,40 @@
+use clap::Parser;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use std::fmt::Display;
 use std::io::BufRead;
 
-// TODO: only make guesses that are valid aka --hard-mode
 // TODO: support guessing from the bigger corpus
+
+/// Wordle Solver
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// The solution of the Wordle problem, for simulation mode.
+    #[clap(short, long)]
+    solution: Option<String>,
+
+    /// Enable hard mode in which all guesses must be valid solutions.
+    #[clap(short, long)]
+    hard_mode: bool,
+}
 
 fn main() {
     println!("Wordle Solver");
+    let args = Args::parse();
     let valid_solutions = parse_words(include_str!("valid_solutions.txt"));
-    let args: Vec<String> = std::env::args().collect();
-    match args.len() {
-        1 => {
+    match args.solution {
+        None => {
             let guesser = InteractiveGuesser {};
-            solve(guesser, valid_solutions.clone(), valid_solutions);
+            solve(
+                guesser,
+                valid_solutions.clone(),
+                valid_solutions,
+                args.hard_mode,
+            );
         }
-        2 => {
-            let solution_raw: Vec<char> = args[1].chars().collect();
+        Some(solution) => {
+            let solution_raw: Vec<char> = solution.chars().collect();
             if solution_raw.len() != 5 {
                 println!("The input word must have exactly 5 letters");
                 std::process::exit(1);
@@ -26,20 +44,29 @@ fn main() {
 
             println!("\nSimulating game play for solution '{}'", solution);
             let guesser = KnownSolutionGuesser { solution };
-            solve(guesser, valid_solutions.clone(), valid_solutions);
-        }
-        _ => {
-            println!("Too many inputs passed");
-            std::process::exit(1);
+            solve(
+                guesser,
+                valid_solutions.clone(),
+                valid_solutions,
+                args.hard_mode,
+            );
         }
     }
 }
 
-fn solve<T: Guesser>(guesser: T, allowed_guesses: Vec<Word>, mut possible_solutions: Vec<Word>) {
+fn solve<T: Guesser>(
+    guesser: T,
+    allowed_guesses: Vec<Word>,
+    mut possible_solutions: Vec<Word>,
+    hard_mode: bool,
+) {
     let mut responses = Vec::new();
     loop {
         println!("");
-        let (best, best_score) = best_guess(&allowed_guesses, &possible_solutions);
+        let (best, best_score) = match hard_mode {
+            true => best_guess(&possible_solutions, &possible_solutions),
+            false => best_guess(&allowed_guesses, &possible_solutions),
+        };
         println!(
             "Guess: {} (expected remaining solutions: {})",
             best, best_score
