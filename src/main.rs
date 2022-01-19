@@ -87,7 +87,22 @@ fn solve<T: Guesser>(
             }
             Some(s) => s.iter().map(|w| (*w).clone()).collect(),
         };
-        println!("{} remaining solutions", possible_solutions.len());
+        match possible_solutions.len() <= 5 {
+            true => {
+                let mut s = Vec::new();
+                for solution in &possible_solutions {
+                    s.push(format!["{}", solution])
+                }
+                println!(
+                    "{} remaining solutions ({})",
+                    possible_solutions.len(),
+                    s.join(", ")
+                );
+            }
+            false => {
+                println!("{} remaining solutions", possible_solutions.len());
+            }
+        }
     }
 
     println!("");
